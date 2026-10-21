@@ -1,0 +1,19 @@
+# Dependencias
+node_modules/
+
+# Archivos de compilación de Vite y Electron
+dist/
+out/
+release/
+
+# Variables de entorno
+.env
+.env.local
+
+# Archivos del sistema operativo
+.DS_Store
+Thumbs.db
+
+# Archivos de logs
+npm-debug.log
+yarn-error.log
