@@ -3,7 +3,7 @@ import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import { exec } from 'child_process'
-import { stdout } from 'process'
+import fs from 'fs'
 
 function createWindow() {
   // Create the browser window.
@@ -51,22 +51,65 @@ app.whenReady().then(() => {
     optimizer.watchWindowShortcuts(window)
   })
 
-  // IPC test
-  //ipcMain.on('ping', () => console.log('pong'))
+  const dictPath = join(app.getPath('userData'), 'dictionary.json')
 
+  if (!fs.existsSync(dictPath)) {
+    fs.writeFileSync(dictPath, JSON.stringify([]), 'utf-8')
+  }
+
+  const getDictionary = () => {
+    const data = fs.readFileSync(dictPath, 'utf-8')
+    try {
+      return JSON.parse(data)
+    } catch (error) {
+      console.error(error)
+      return []
+    }
+  }
+
+  const saveDictionary = (data) => {
+    fs.writeFileSync(dictPath, JSON.stringify(data, null, 2), 'utf-8')
+  }
+
+  ipcMain.handle('db:get-domains', () => {
+    return getDictionary()
+  })
+
+  ipcMain.handle('db:add-domain', (event, domainName) => {
+    const domains = getDictionary()
+
+    if (domains.some((d) => d.domain === domainName)) {
+      return { success: false, message: 'El dominio ya existe en la lista blanca' }
+    }
+
+    const newDomain = { id: Date.now(), domain: domainName }
+    domains.push(newDomain)
+
+    saveDictionary(domains)
+    return { success: true, id: newDomain.id }
+  })
+
+  ipcMain.handle('db:delete-domain', (event, id) => {
+    let domains = getDictionary()
+    domains = domains.filter((d) => d.id !== id)
+    saveDictionary(domains)
+    return { success: true }
+  })
+
+  //Motor de escaneo ARP
   ipcMain.handle('network:scan', () => {
     return new Promise((resolve) => {
       exec('arp -a', (error, stdout) => {
         if (error) {
           resolve({ error: error.message })
-          return;
+          return
         }
 
-        const devices = [];
-        const lines = stdout.split('\n');
+        const devices = []
+        const lines = stdout.split('\n')
 
         // Expresión regular para extraer IP y MAC en Windows
-        const regex = /([0-9\.]+)\s+([0-9a-f\-]{17})\s+/i;
+        const regex = /([0-9.]+)\s+([0-9a-f-]{17})\s+/i
 
         lines.forEach((line) => {
           const match = line.match(regex)
@@ -78,6 +121,10 @@ app.whenReady().then(() => {
             })
           }
         })
+
+        const uniqueDevices = [...new Map(devices.map((item) => [item.mac, item])).values()]
+
+        resolve(uniqueDevices)
       })
     })
   })
