@@ -3,7 +3,10 @@ import { electronAPI } from '@electron-toolkit/preload'
 
 // Custom APIs for renderer
 const api = {
-  scanNetwork: () => ipcRenderer.invoke('network:scan')
+  scanNetwork: () => ipcRenderer.invoke('network:scan'),
+  getDomains: () => ipcRenderer.invoke('db:get-domains'),
+  addDomain: (domain) => ipcRenderer.invoke('db:add-domain', domain),
+  deleteDomain: (id) => ipcRenderer.invoke('db:delete-domain', id)
 }
 
 // Use `contextBridge` APIs to expose Electron APIs to

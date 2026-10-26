@@ -9,6 +9,7 @@ function App() {
 
   const loadDomains = async () => {
     const data = await window.api.getDomains()
+    console.log('Datos del JSON:', data)
     setDomains(data)
   }
 
@@ -132,7 +133,7 @@ function App() {
                   cursor: 'pointer'
                 }}
               >
-                Delete
+                Eliminar
               </button>
             </li>
           ))}
